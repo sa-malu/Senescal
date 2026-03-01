@@ -25,13 +25,18 @@ client.on("ready", () => {
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
+  console.log("SLASH:", interaction.commandName, "por", interaction.user.tag);
+
   const command = client.slashCommands.get(interaction.commandName);
-  if (!command) return;
+  if (!command) {
+    console.log("Comando não encontrado no loader:", interaction.commandName);
+    return interaction.reply({ content: "⚠️ Comando não carregado no bot.", ephemeral: true });
+  }
 
   try {
     await command.execute(interaction, client);
   } catch (error) {
-    console.error(error);
+    console.error("Erro ao executar comando:", interaction.commandName, error);
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({ content: "⚠️ Erro ao executar o comando.", ephemeral: true });
     } else {
