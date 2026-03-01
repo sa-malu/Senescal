@@ -15,20 +15,32 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   async execute(interaction) {
-    const quantidade = interaction.options.getInteger("quantidade", true);
+    await interaction.deferReply({ ephemeral: true });
 
+    const quantidade = interaction.options.getInteger("quantidade", true);
     const channel = interaction.channel;
+
     if (!channel || !channel.isTextBased()) {
-      return interaction.reply({ content: "⚠️ Não posso limpar aqui.", ephemeral: true });
+      return interaction.editReply("⚠️ Não posso limpar aqui.");
     }
 
-    const deleted = await channel.bulkDelete(quantidade, true);
+    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageMessages)) {
+      return interaction.editReply("⚠️ Eu não tenho permissão para apagar mensagens.");
+    }
 
-    const embed = createEmbed(
-      "🧹 Limpeza Executada",
-      `Foram removidas **${deleted.size}** mensagens para preservar a ordem.`
-    );
+    try {
+      const deleted = await channel.bulkDelete(quantidade, true);
 
-    return interaction.reply({ embeds: [embed] });
-  }
+      const embed = createEmbed(
+        "🧹 Limpeza Executada",
+        `Foram removidas **${deleted.size}** mensagens para preservar a ordem.`
+      );
+
+      await interaction.editReply({ embeds: [embed] });
+
+    } catch (err) {
+      console.error("Erro no limpar:", err);
+      await interaction.editReply("⚠️ Ocorreu um erro ao tentar limpar mensagens.");
+    }
+  },
 };
