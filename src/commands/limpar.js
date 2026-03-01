@@ -4,10 +4,11 @@ const { createEmbed } = require("../utils/embed");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("limpar")
-    .setDescription("Remove mensagens do canal.")
+    .setDescription("Remove mensagens recentes do canal (1 a 100).")
     .addIntegerOption(opt =>
-      opt.setName("quantidade")
-        .setDescription("1 a 100")
+      opt
+        .setName("quantidade")
+        .setDescription("Número de mensagens (1 a 100)")
         .setMinValue(1)
         .setMaxValue(100)
         .setRequired(true)
@@ -15,32 +16,35 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
 
   async execute(interaction) {
+    // evita “This interaction failed” por timeout
     await interaction.deferReply({ ephemeral: true });
 
-    const quantidade = interaction.options.getInteger("quantidade", true);
-    const channel = interaction.channel;
-
-    if (!channel || !channel.isTextBased()) {
-      return interaction.editReply("⚠️ Não posso limpar aqui.");
-    }
-
-    if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageMessages)) {
-      return interaction.editReply("⚠️ Eu não tenho permissão para apagar mensagens.");
-    }
-
     try {
+      const quantidade = interaction.options.getInteger("quantidade", true);
+      const channel = interaction.channel;
+
+      if (!channel || !channel.isTextBased()) {
+        return interaction.editReply("⚠️ Não posso limpar neste local.");
+      }
+
+      // checa permissão do BOT no canal
+      const botMember = interaction.guild.members.me;
+      const perms = channel.permissionsFor(botMember);
+      if (!perms?.has(PermissionFlagsBits.ManageMessages)) {
+        return interaction.editReply("⚠️ Eu não tenho permissão de **Gerenciar Mensagens** neste canal.");
+      }
+
       const deleted = await channel.bulkDelete(quantidade, true);
 
       const embed = createEmbed(
         "🧹 Limpeza Executada",
-        `Foram removidas **${deleted.size}** mensagens para preservar a ordem.`
+        `Foram removidas **${deleted.size}** mensagens. (Mensagens com mais de 14 dias não podem ser apagadas em massa.)`
       );
 
-      await interaction.editReply({ embeds: [embed] });
-
+      return interaction.editReply({ embeds: [embed] });
     } catch (err) {
-      console.error("Erro no limpar:", err);
-      await interaction.editReply("⚠️ Ocorreu um erro ao tentar limpar mensagens.");
+      console.error("ERRO /limpar:", err);
+      return interaction.editReply("⚠️ Falhei ao limpar. Veja se tenho permissão e se as mensagens são recentes.");
     }
   },
 };
