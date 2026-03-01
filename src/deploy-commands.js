@@ -12,7 +12,7 @@ if (!token || !clientId || !guildId) {
 }
 
 const commands = [];
-const commandsPath = path.join(__dirname, "slash");
+const commandsPath = path.join(__dirname, "commands");
 const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"));
 
 for (const file of commandFiles) {
