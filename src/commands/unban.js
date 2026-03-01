@@ -1,16 +1,17 @@
-const { PermissionsBitField } = require("discord.js");
+const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const { createEmbed } = require("../utils/embed");
 
 module.exports = {
-  name: "unban",
-  async execute(message, args) {
-    if (!message.member.permissions.has(PermissionsBitField.Flags.BanMembers))
-      return message.reply("⚠️ Permissão insuficiente.");
+  data: new SlashCommandBuilder()
+    .setName("unban")
+    .setDescription("Remove o banimento de um usuário pelo ID.")
+    .addStringOption(opt => opt.setName("id").setDescription("ID do usuário").setRequired(true))
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
 
-    const id = args[0];
-    if (!id) return message.reply("⚠️ Informe o ID do cidadão.");
+  async execute(interaction) {
+    const id = interaction.options.getString("id", true);
 
-    await message.guild.members.unban(id);
+    await interaction.guild.members.unban(id).catch(() => null);
 
     const embed = createEmbed(
       "⚖️ Perdão Concedido",
@@ -18,6 +19,6 @@ module.exports = {
       "#2ECC71"
     );
 
-    message.channel.send({ embeds: [embed] });
+    return interaction.reply({ embeds: [embed] });
   }
 };
