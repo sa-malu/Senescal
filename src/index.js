@@ -1,47 +1,42 @@
 const { Client, GatewayIntentBits, Collection } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
-const config = require("./config");
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-  ],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
-client.commands = new Collection();
+client.slashCommands = new Collection();
 
-// Carregar comandos
-const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
+// Carregar slash commands
+const slashPath = path.join(__dirname, "slash");
+const slashFiles = fs.readdirSync(slashPath).filter(f => f.endsWith(".js"));
 
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.name, command);
+for (const file of slashFiles) {
+  const command = require(path.join(slashPath, file));
+  client.slashCommands.set(command.data.name, command);
 }
 
 client.on("ready", () => {
   console.log(`🛡️ Senescal ativo como ${client.user.tag}`);
+  console.log(`📌 Em ${client.guilds.cache.size} servidor(es).`);
 });
 
-client.on("messageCreate", async (message) => {
-  if (!message.guild || message.author.bot) return;
-  if (!message.content.startsWith(config.prefix)) return;
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
 
-  const args = message.content.slice(config.prefix.length).trim().split(/ +/);
-  const commandName = args.shift().toLowerCase();
-
-  const command = client.commands.get(commandName);
+  const command = client.slashCommands.get(interaction.commandName);
   if (!command) return;
 
   try {
-    await command.execute(message, args, client);
+    await command.execute(interaction, client);
   } catch (error) {
     console.error(error);
-    message.reply("⚠️ Ocorreu um erro ao executar o decreto.");
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({ content: "⚠️ Erro ao executar o comando.", ephemeral: true });
+    } else {
+      await interaction.reply({ content: "⚠️ Erro ao executar o comando.", ephemeral: true });
+    }
   }
 });
 
