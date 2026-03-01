@@ -9,11 +9,11 @@ const client = new Client({
 client.slashCommands = new Collection();
 
 // Carregar slash commands
-const slashPath = path.join(__dirname, "slash");
-const slashFiles = fs.readdirSync(slashPath).filter(f => f.endsWith(".js"));
+const commandsPath = path.join(__dirname, "commands");
+const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"));
 
-for (const file of slashFiles) {
-  const command = require(path.join(slashPath, file));
+for (const file of commandFiles) {
+  const command = require(path.join(commandsPath, file));
   client.slashCommands.set(command.data.name, command);
 }
 
